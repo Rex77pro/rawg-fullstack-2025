@@ -1,15 +1,14 @@
-import cors from "cors";
 import express from "express";
-import dbConnection from "./dbConnection";
-import setupRouters from "./setupRouters";
+import gameRouter from "../routes/gameRouter";
+import genreRouter from "../routes/genreRouter";
+import parentPlatformRouter from "../routes/ParentPlatformRouter";
+import storeRouter from "../routes/storeRouter";
 
-const init = (app: express.Application) => {
-  app.use(express.json()); // Middleware to parse JSON request bodies
-  app.use(cors());
-
-  dbConnection(); // Initialize database connection
-
-  setupRouters(app);
+const setupRouters = (app: express.Application) => {
+  app.use("/games", gameRouter);
+  app.use("/stores", storeRouter);
+  app.use("/platforms/lists/parents", parentPlatformRouter);
+  app.use("/genres", genreRouter);
 };
 
-export default init;
+export default setupRouters;
