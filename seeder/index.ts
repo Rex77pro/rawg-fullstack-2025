@@ -1,4 +1,3 @@
-
 import * as fs from "fs";
 import { AppDataSource } from "./data-source";
 import { Game } from "./entities/Game";
@@ -6,6 +5,7 @@ import { Genre } from "./entities/Genre";
 import { ParentPlatform } from "./entities/ParentPlatform";
 import { Store } from "./entities/Store";
 
+// Define the structure of the original game data as it appears in games.json
 interface GameOriginal {
   id: number;
   name: string;
@@ -24,12 +24,14 @@ async function insertData() {
   const parsedData = JSON.parse(rawData);
   const gamesOriginalData: GameOriginal[] = parsedData.results;
 
+  // Transform the original data to match the Game entity structure
   const gamesData: Game[] = gamesOriginalData.map((game) => ({
     ...game,
     parent_platforms: game.parent_platforms.map((pp) => pp.platform),
     stores: game.stores.map((s) => s.store),
   }));
 
+  // Get repositories for each entity
   const gameRepo = AppDataSource.getRepository(Game);
   const genreRepo = AppDataSource.getRepository(Genre);
   const parentPlatformRepo = AppDataSource.getRepository(ParentPlatform);
@@ -45,7 +47,9 @@ async function insertData() {
   await storeRepo.delete({});
   console.log("stores deleted");
 
+  //loop through each game and ensure related entities exist before saving the game
   for (const game of gamesData) {
+    // Ensure related genres exist in the database, if not, create them
     await Promise.all(
       game.genres.map(async (g) => {
         let genre = await genreRepo.findOne({ where: { id: g.id } });
@@ -57,6 +61,7 @@ async function insertData() {
       })
     );
 
+    // Ensure related parent platforms exist in the database, if not, create them
     await Promise.all(
       game.parent_platforms.map(async (pp) => {
         let parentPlatform = await parentPlatformRepo.findOne({
@@ -70,6 +75,7 @@ async function insertData() {
       })
     );
 
+    // Ensure related stores exist in the database, if not, create them
     await Promise.all(
       game.stores.map(async (s) => {
         let store = await storeRepo.findOne({ where: { id: s.id } });
@@ -81,6 +87,7 @@ async function insertData() {
       })
     );
 
+    // Now save the game itself - it will also save the relationships in the join tables
     await gameRepo.save(game);
     console.log(`Game: ${game.name} created`);
   }
@@ -89,7 +96,9 @@ async function insertData() {
 insertData()
   .then(() => {
     console.log("Data insertion completed.");
-    return AppDataSource.destroy();
+
+    AppDataSource.destroy(); // Close the data source connection
+    process.exit(); // Exit the process
   })
   .catch((error) => {
     console.error("Error during data insertion:", error);
